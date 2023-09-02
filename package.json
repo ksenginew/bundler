@@ -10,6 +10,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^20.5.8",
     "rollup": "^3.28.1"
+  },
+  "dependencies": {
+    "acorn": "^8.10.0"
   }
 }
