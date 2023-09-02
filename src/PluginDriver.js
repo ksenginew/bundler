@@ -44,15 +44,41 @@ export class PluginDriver {
   contextParse = parse;
 
   /**
+   * @param {string} method
+   */
+  sortMethod(method, plugins) {
+    const pre = []
+    const defaults = []
+    const post = []
+
+    for (const plugin of plugins) {
+      let ctx = this.pluginContexts.get(plugin)
+      // @ts-ignore
+      let handler = plugin[method]
+      if (handler)
+        if (handler.order === 'pre')
+          pre.push(handler.handler)
+        else if (handler.order === 'post')
+          post.push(handler.handler)
+        else defaults.push(handler)
+    }
+
+    return [pre, defaults, post]
+  }
+
+  /**
    * @param {string} source
    * @param {string | undefined} importer
    * @param {import("rollup").CustomPluginOptions | undefined} custom
    * @param {boolean | undefined} isEntry
    * @param {Record<string, string>} arg4
-   * @param {{ importer: string | undefined; plugin: import("./types").Plugin; source: string; }[] | null} arg5
+   * @param {{ importer: string | undefined; plugin: import("./types").Plugin; source: string; }[] | null} skips
    */
-  async resolveId(source, importer, custom, isEntry, arg4, arg5) {
-    return null;
+  async resolve(source, importer, custom, isEntry, arg4, skips) {
+    for (const plugin_type of this.sortMethod('resolveId', skips ? this.plugins.filter(_plugin => skips.some(({ plugin }) => _plugin === plugin)) : this.plugins))
+      for (const handler of plugin_type) {
+        const result = handler()
+    }
   }
 
   /**

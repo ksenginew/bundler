@@ -62,7 +62,7 @@ export function getPluginContext(
     },
     parse: driver.contextParse.bind(driver),
     resolve(source, importer, { assertions, custom, isEntry, skipSelf } = {}) {
-      return driver.resolveId(
+      return driver.resolve(
         source,
         importer,
         custom,
