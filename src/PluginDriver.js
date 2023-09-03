@@ -45,6 +45,7 @@ export class PluginDriver {
 
   /**
    * @param {string} method
+   * @param {import("./types").Plugin[]} plugins
    */
   sortMethod(method, plugins) {
     const pre = []
@@ -67,24 +68,46 @@ export class PluginDriver {
   }
 
   /**
+   * @template {keyof import("./types").Plugin} T
+   * @param {T} method
+   * @param {import("./types").Plugin[]} plugins
+   * @param {Parameters<import("./types").Plugin[T]>} args
+   * @param {boolean} [first]
+   */
+  async run(method, plugins, args, first, parallel = true) {
+    let results = []
+    for (const plugin_type of this.sortMethod(method, plugins))
+      for (const plugin of plugin_type) {
+        const handler = plugin.handler || plugin
+        const ctx = this.pluginContexts.get(plugin)
+        let result = handler.apply(ctx, args)
+        if (!parallel || plugin.sequential) await result
+        if (first) {
+          result = await result
+          if (result !== null || result !== undefined) return result
+        }
+        else
+          results.push(result)
+      }
+    return results
+  }
+
+  /**
    * @param {string} source
    * @param {string | undefined} importer
    * @param {import("rollup").CustomPluginOptions | undefined} custom
-   * @param {boolean | undefined} isEntry
-   * @param {Record<string, string>} arg4
+   * @param {boolean} [isEntry]
+   * @param {Record<string, string>} assertions
    * @param {{ importer: string | undefined; plugin: import("./types").Plugin; source: string; }[] | null} skips
    */
-  async resolve(source, importer, custom, isEntry, arg4, skips) {
-    for (const plugin_type of this.sortMethod('resolveId', skips ? this.plugins.filter(_plugin => skips.some(({ plugin }) => _plugin === plugin)) : this.plugins))
-      for (const handler of plugin_type) {
-        const result = handler()
-    }
+  resolveId(source, importer, custom, isEntry, assertions, skips) {
+    return this.run('resolveId', skips ? this.plugins.filter(_plugin => skips.some(({ plugin }) => _plugin === plugin)) : this.plugins, [source, importer, { custom, isEntry: isEntry || false, assertions }],true)
   }
 
   /**
    * @param {{ id: string; resolveDependencies?: boolean | undefined; } & Partial<import("rollup").PartialNull<import("rollup").ModuleOptions>>} resolvedId
    */
   load(resolvedId) {
-    throw new Error("Method not implemented.");
+    return this.run('resolveId', skips ? this.plugins.filter(_plugin => skips.some(({ plugin }) => _plugin === plugin)) : this.plugins, [source, importer, { custom, isEntry: isEntry || false, assertions }],true)
   }
 }
