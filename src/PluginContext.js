@@ -1,10 +1,9 @@
-import { PluginDriver } from "./PluginDriver";
 
 const error = console.error.bind(console);
 /**
  * @param {import("./types").Plugin} plugin
  * @param {{ [x: string]: any; }} pluginCache
- * @param {PluginDriver} driver
+ * @param {import("./PluginDriver").PluginDriver} driver
  * @param {{ logLevel: any; onLog: any; }} options
  * @param {{ add: (arg0: any) => void; }} existingPluginNames
  * @returns {import("./types").PluginContext}

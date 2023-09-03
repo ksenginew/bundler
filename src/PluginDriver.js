@@ -1,4 +1,4 @@
-import { getPluginContext } from "./PluginContext";
+import { getPluginContext } from "./PluginContext.js";
 import { parse } from "acorn";
 export class PluginDriver {
   /**
@@ -31,8 +31,7 @@ export class PluginDriver {
         ),
       ]),
     );
-    this.emitFile = undefined;
-    this.getFileName = undefined;
+
   }
 
   getModuleInfo = (/** @type {string} */ moduleId) => {
@@ -42,6 +41,8 @@ export class PluginDriver {
   };
 
   contextParse = parse;
+  emitFile = () => { };
+  getFileName = () => { };
 
   /**
    * @param {string} method
@@ -89,25 +90,26 @@ export class PluginDriver {
         else
           results.push(result)
       }
+    if (first) return
     return results
   }
 
   /**
    * @param {string} source
-   * @param {string | undefined} importer
-   * @param {import("rollup").CustomPluginOptions | undefined} custom
-   * @param {boolean} [isEntry]
-   * @param {Record<string, string>} assertions
-   * @param {{ importer: string | undefined; plugin: import("./types").Plugin; source: string; }[] | null} skips
+   * @param {string | undefined} [importer]
+   * @param {import("rollup").CustomPluginOptions | undefined} [custom]
+   * @param {boolean | undefined} [isEntry]
+   * @param {Record<string, string> | undefined} [assertions]
+   * @param {{ importer: string | undefined; plugin: import("./types").Plugin; source: string; }[] | null | undefined} [skips]
    */
   resolveId(source, importer, custom, isEntry, assertions, skips) {
-    return this.run('resolveId', skips ? this.plugins.filter(_plugin => skips.some(({ plugin }) => _plugin === plugin)) : this.plugins, [source, importer, { custom, isEntry: isEntry || false, assertions }],true)
+    return this.run('resolveId', skips ? this.plugins.filter(_plugin => skips.some(({ plugin }) => _plugin === plugin)) : this.plugins, [source, importer, { custom, isEntry: isEntry || false, assertions: assertions || {} }], true)
   }
 
   /**
    * @param {{ id: string; resolveDependencies?: boolean | undefined; } & Partial<import("rollup").PartialNull<import("rollup").ModuleOptions>>} resolvedId
    */
-  load(resolvedId) {
-    return this.run('resolveId', skips ? this.plugins.filter(_plugin => skips.some(({ plugin }) => _plugin === plugin)) : this.plugins, [source, importer, { custom, isEntry: isEntry || false, assertions }],true)
+  load({ id }) {
+    return this.run('load', this.plugins, [id], true)
   }
 }

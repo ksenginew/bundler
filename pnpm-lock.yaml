@@ -8,6 +8,9 @@ dependencies:
   acorn:
     specifier: ^8.10.0
     version: 8.10.0
+  acorn-import-assertions:
+    specifier: ^1.9.0
+    version: 1.9.0(acorn@8.10.0)
 
 devDependencies:
   '@types/node':
@@ -22,6 +25,14 @@ packages:
   /@types/node@20.5.8:
     resolution: {integrity: sha512-eajsR9aeljqNhK028VG0Wuw+OaY5LLxYmxeoXynIoE6jannr9/Ucd1LL0hSSoafk5LTYG+FfqsyGt81Q6Zkybw==}
     dev: true
+
+  /acorn-import-assertions@1.9.0(acorn@8.10.0):
+    resolution: {integrity: sha512-cmMwop9x+8KFhxvKrKfPYmN6/pKTYYHBqLa0DfvVZcKMJWNyWLnaqND7dx/qn66R7ewM1UX5XMaDVP5wlVTaVA==}
+    peerDependencies:
+      acorn: ^8
+    dependencies:
+      acorn: 8.10.0
+    dev: false
 
   /acorn@8.10.0:
     resolution: {integrity: sha512-F0SAmZ8iUtS//m8DmCTA0jlh6TDKkHQyK6xc6V4KDTyZKA9dnvX9/3sRTVQrWm79glUAZbnmmNcdYwUIHWVybw==}
