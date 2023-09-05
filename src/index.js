@@ -5,7 +5,10 @@ import path from "path";
 const driver = await PluginDriver({
     plugins: [
         {
-            name: 'losd',
+            name: 'load',
+            transform(code){
+return code + '44'
+            },
             async load(id) {
                 if (path.isAbsolute(id))
                     try {
@@ -24,4 +27,5 @@ const driver = await PluginDriver({
 })
 const resolvedId = await driver.resolve('src/index.css')
 if (resolvedId)
-    console.log(await driver.load({ ...resolvedId, resolveDependencies: true }))
+    console.log(await driver.load({ ...resolvedId }))
+
