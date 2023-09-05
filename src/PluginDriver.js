@@ -20,7 +20,10 @@ export class PluginDriver {
     this.options = options;
     this.plugins = userPlugins;
     const existingPluginNames = new Set();
-
+    /**
+     * @type {Map<import("./types").Plugin, string[]>}
+     */
+    this.skippedIds = new Map(this.plugins.map((plugin) => [plugin, []]));
     this.pluginContexts = new Map(
       this.plugins.map((plugin) => [
         plugin,
@@ -102,13 +105,16 @@ export class PluginDriver {
    * @param {{ importer: string | undefined; plugin: import("./types").Plugin; source: string; }[] | null | undefined} [skips]
    */
   resolveId(source, importer, custom, isEntry, assertions, skips) {
+    const key = importer + "$" + source;
+    if (skips)
+      for (let { importer, plugin, source } of skips) {
+        this.skippedIds.get(plugin)?.push(key);
+      }
     return this.run(
       "resolveId",
-      skips
-        ? this.plugins.filter((_plugin) =>
-            skips.some(({ plugin }) => _plugin === plugin),
-          )
-        : this.plugins,
+      this.plugins.filter(
+        (plugin) => !this.skippedIds.get(plugin)?.includes(key),
+      ),
       [
         source,
         importer,
