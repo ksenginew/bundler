@@ -1,56 +1,56 @@
-const ABSOLUTE_PATH_REGEX = /^(?:\/|(?:[A-Za-z]:)?[/\\|])/
-const RELATIVE_PATH_REGEX = /^\.?\.\//
-const ALL_BACKSLASHES_REGEX = /\\/g
-const ANY_SLASH_REGEX = /[/\\]/
-const EXTNAME_REGEX = /\.[^.]+$/
+const ABSOLUTE_PATH_REGEX = /^(?:\/|(?:[A-Za-z]:)?[/\\|])/;
+const RELATIVE_PATH_REGEX = /^\.?\.\//;
+const ALL_BACKSLASHES_REGEX = /\\/g;
+const ANY_SLASH_REGEX = /[/\\]/;
+const EXTNAME_REGEX = /\.[^.]+$/;
 
 /**
  * @param {string} path
  */
 export function isAbsolute(path) {
-  return ABSOLUTE_PATH_REGEX.test(path)
+  return ABSOLUTE_PATH_REGEX.test(path);
 }
 
 /**
  * @param {string} path
  */
 export function isRelative(path) {
-  return RELATIVE_PATH_REGEX.test(path)
+  return RELATIVE_PATH_REGEX.test(path);
 }
 
 /**
  * @param {string} path
  */
 export function normalize(path) {
-  return path.replace(ALL_BACKSLASHES_REGEX, "/")
+  return path.replace(ALL_BACKSLASHES_REGEX, "/");
 }
 
 /**
  * @param {string} path
  */
 export function basename(path) {
-  return path.split(ANY_SLASH_REGEX).pop() || ""
+  return path.split(ANY_SLASH_REGEX).pop() || "";
 }
 
 /**
  * @param {string} path
  */
 export function dirname(path) {
-  const match = /[/\\][^/\\]*$/.exec(path)
-  if (!match) return "."
+  const match = /[/\\][^/\\]*$/.exec(path);
+  if (!match) return ".";
 
-  const directory = path.slice(0, -match[0].length)
+  const directory = path.slice(0, -match[0].length);
 
   // If `directory` is the empty string, we're at root.
-  return directory || "/"
+  return directory || "/";
 }
 
 /**
  * @param {any} path
  */
 export function extname(path) {
-  const match = EXTNAME_REGEX.exec(basename(path))
-  return match ? match[0] : ""
+  const match = EXTNAME_REGEX.exec(basename(path));
+  return match ? match[0] : "";
 }
 
 /**
@@ -58,55 +58,55 @@ export function extname(path) {
  * @param {string} to
  */
 export function relative(from, to) {
-  const fromParts = from.split(ANY_SLASH_REGEX).filter(Boolean)
-  const toParts = to.split(ANY_SLASH_REGEX).filter(Boolean)
+  const fromParts = from.split(ANY_SLASH_REGEX).filter(Boolean);
+  const toParts = to.split(ANY_SLASH_REGEX).filter(Boolean);
 
-  if (fromParts[0] === ".") fromParts.shift()
-  if (toParts[0] === ".") toParts.shift()
+  if (fromParts[0] === ".") fromParts.shift();
+  if (toParts[0] === ".") toParts.shift();
 
   while (fromParts[0] && toParts[0] && fromParts[0] === toParts[0]) {
-    fromParts.shift()
-    toParts.shift()
+    fromParts.shift();
+    toParts.shift();
   }
 
   while (toParts[0] === ".." && fromParts.length > 0) {
-    toParts.shift()
-    fromParts.pop()
+    toParts.shift();
+    fromParts.pop();
   }
 
   while (fromParts.pop()) {
-    toParts.unshift("..")
+    toParts.unshift("..");
   }
 
-  return toParts.join("/")
+  return toParts.join("/");
 }
 
 /**
  * @param {any[]} paths
  */
 export function resolve(...paths) {
-  const firstPathSegment = paths.shift()
+  const firstPathSegment = paths.shift();
   if (!firstPathSegment) {
-    return "/"
+    return "/";
   }
-  let resolvedParts = firstPathSegment.split(ANY_SLASH_REGEX)
+  let resolvedParts = firstPathSegment.split(ANY_SLASH_REGEX);
 
   for (const path of paths) {
     if (isAbsolute(path)) {
-      resolvedParts = path.split(ANY_SLASH_REGEX)
+      resolvedParts = path.split(ANY_SLASH_REGEX);
     } else {
-      const parts = path.split(ANY_SLASH_REGEX)
+      const parts = path.split(ANY_SLASH_REGEX);
 
       while (parts[0] === "." || parts[0] === "..") {
-        const part = parts.shift()
+        const part = parts.shift();
         if (part === "..") {
-          resolvedParts.pop()
+          resolvedParts.pop();
         }
       }
 
-      resolvedParts.push(...parts)
+      resolvedParts.push(...parts);
     }
   }
 
-  return resolvedParts.join("/")
+  return resolvedParts.join("/");
 }

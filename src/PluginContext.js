@@ -1,4 +1,3 @@
-
 const error = console.error.bind(console);
 /**
  * @param {import("./types").Plugin} plugin

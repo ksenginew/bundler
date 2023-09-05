@@ -1,5 +1,6 @@
 import { getPluginContext } from "./PluginContext.js";
 import { parse } from "acorn";
+import { normalizeInputOptions } from "./options.js";
 export class PluginDriver {
   /**
    * @type {{ [x: string]: boolean; }}
@@ -16,6 +17,7 @@ export class PluginDriver {
    * @param {Map<string, any>} pluginCache
    */
   constructor(options, userPlugins, pluginCache) {
+    this.options = options;
     this.plugins = userPlugins;
     const existingPluginNames = new Set();
 
@@ -31,7 +33,6 @@ export class PluginDriver {
         ),
       ]),
     );
-
   }
 
   getModuleInfo = (/** @type {string} */ moduleId) => {
@@ -41,57 +42,55 @@ export class PluginDriver {
   };
 
   contextParse = parse;
-  emitFile = () => { };
-  getFileName = () => { };
+  emitFile = () => {};
+  getFileName = () => {};
 
   /**
    * @param {string} method
    * @param {import("./types").Plugin[]} plugins
    */
   sortMethod(method, plugins) {
-    const pre = []
-    const defaults = []
-    const post = []
+    const pre = [];
+    const defaults = [];
+    const post = [];
 
     for (const plugin of plugins) {
-      let ctx = this.pluginContexts.get(plugin)
+      let ctx = this.pluginContexts.get(plugin);
       // @ts-ignore
-      let handler = plugin[method]
+      let handler = plugin[method];
       if (handler)
-        if (handler.order === 'pre')
-          pre.push(handler.handler)
-        else if (handler.order === 'post')
-          post.push(handler.handler)
-        else defaults.push(handler)
+        if (handler.order === "pre") pre.push(plugin);
+        else if (handler.order === "post") post.push(plugin);
+        else defaults.push(plugin);
     }
 
-    return [pre, defaults, post]
+    return [pre, defaults, post];
   }
 
   /**
    * @template {keyof import("./types").Plugin} T
-   * @param {T} method
+   * @param {T} name
    * @param {import("./types").Plugin[]} plugins
    * @param {Parameters<import("./types").Plugin[T]>} args
    * @param {boolean} [first]
    */
-  async run(method, plugins, args, first, parallel = true) {
-    let results = []
-    for (const plugin_type of this.sortMethod(method, plugins))
+  async run(name, plugins, args, first, parallel = true) {
+    let results = [];
+    for (const plugin_type of this.sortMethod(name, plugins))
       for (const plugin of plugin_type) {
-        const handler = plugin.handler || plugin
-        const ctx = this.pluginContexts.get(plugin)
-        let result = handler.apply(ctx, args)
-        if (!parallel || plugin.sequential) await result
+        // @ts-ignore
+        const method = plugin[name];
+        const handler = method.handler || method;
+        const ctx = this.pluginContexts.get(plugin);
+        let result = handler.apply(ctx, args);
+        if (!parallel || method.sequential) await result;
         if (first) {
-          result = await result
-          if (result !== null || result !== undefined) return result
-        }
-        else
-          results.push(result)
+          result = await result;
+          if (result !== null || result !== undefined) return result;
+        } else results.push(result);
       }
-    if (first) return
-    return results
+    if (first) return;
+    return results;
   }
 
   /**
@@ -103,13 +102,62 @@ export class PluginDriver {
    * @param {{ importer: string | undefined; plugin: import("./types").Plugin; source: string; }[] | null | undefined} [skips]
    */
   resolveId(source, importer, custom, isEntry, assertions, skips) {
-    return this.run('resolveId', skips ? this.plugins.filter(_plugin => skips.some(({ plugin }) => _plugin === plugin)) : this.plugins, [source, importer, { custom, isEntry: isEntry || false, assertions: assertions || {} }], true)
+    return this.run(
+      "resolveId",
+      skips
+        ? this.plugins.filter((_plugin) =>
+            skips.some(({ plugin }) => _plugin === plugin),
+          )
+        : this.plugins,
+      [
+        source,
+        importer,
+        { custom, isEntry: isEntry || false, assertions: assertions || {} },
+      ],
+      true,
+    );
   }
 
   /**
    * @param {{ id: string; resolveDependencies?: boolean | undefined; } & Partial<import("rollup").PartialNull<import("rollup").ModuleOptions>>} resolvedId
+   * @returns {Promise<import("rollup").ModuleInfo | undefined>}
    */
-  load({ id }) {
-    return this.run('load', this.plugins, [id], true)
+  async load(resolvedId) {
+    /** @type {string | import("rollup").SourceDescription} */
+    const result = await this.run("load", this.plugins, [resolvedId.id], true);
+    if (result) {
+      return {
+        ...resolvedId,
+        dynamicImporters: [],
+        dynamicallyImportedIdResolutions: [],
+        dynamicallyImportedIds: [],
+        exportedBindings: {},
+        exports: [],
+        hasDefaultExport: null,
+        hasModuleSideEffects: false,
+        implicitlyLoadedAfterOneOf: [],
+        implicitlyLoadedBefore: [],
+        importedIdResolutions: [],
+        importedIds: [],
+        importers: [],
+        isEntry: false,
+        isExternal: false,
+        isIncluded: null,
+        ...(typeof result === "object" ? result : {}),
+        code: typeof result === "string" ? result : result.code,
+        // @ts-ignore
+        map: result.ast || null,
+      };
+    }
+  }
+
+  async resolveOptions() {
+    await this.run("options", this.plugins, [this.options], false, false);
+  }
+
+  async buildStart() {
+    this.options = await normalizeInputOptions(this.options, true);
+    if (Object.freeze) Object.freeze(this.options);
+    this.run("buildStart", this.plugins, [this.options]);
   }
 }
