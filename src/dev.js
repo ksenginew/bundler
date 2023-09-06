@@ -3,13 +3,78 @@ import { PluginDriver } from "./PluginDriver.js";
 import path from "path";
 import { Server } from "./server.js";
 import minimist from "minimist";
+import { lookup } from "mrmime";
+import { DONT_LOAD, loaderPlugin } from "./plugins/loader.js";
 import sirv from "sirv";
+import { cssPlugin } from "./plugins/css.js";
 
-/** @type {Record<string, RegExp>} */
-const mimeMap = {
-  "text/html": /\.html?$/,
-  "application/javascript": /\.[mc]?[jt]sx?$/,
-};
+const { HOST, PORT } = process.env;
+
+/**
+ *
+ * @param {*} options
+ * @returns {(req: import("http").IncomingMessage & {info: URL;originalUrl: string;path: string;search: string;query: URLSearchParams;}, res: import("http").ServerResponse<import("http").IncomingMessage> & {req: import("http").IncomingMessage;}, next: () => Promise<void>) => any}
+ */
+function devMiddleWare(options) {
+  /**
+   * @type {import("rollup").PluginContext}
+   */
+  let driver;
+  let _driver = PluginDriver({
+    plugins: [cssPlugin(), loaderPlugin()],
+  });
+  const init = async () => (driver = await _driver);
+
+  let extensions = ["html", "htm"];
+  let gzips = options.gzip && extensions.map((x) => `${x}.gz`).concat("gz");
+  let brots = options.brotli && extensions.map((x) => `${x}.br`).concat("br");
+
+  const FILES = {};
+
+  let fallback = "/";
+  let isEtag = !!options.etag;
+
+  let cc = options.maxAge != null && `public,max-age=${options.maxAge}`;
+  if (cc && options.immutable) cc += ",immutable";
+  else if (cc && options.maxAge === 0) cc += ",must-revalidate";
+
+  return async (req, res, next) => {
+    await init();
+    let extns = [""];
+    let val = req.headers["accept-encoding"] || "";
+    if (gzips && val.includes("gzip")) extns.unshift(...gzips);
+    if (brots && /(br|brotli)/i.test(val + "")) extns.unshift(...brots);
+    extns.push(...extensions); // [...br, ...gz, orig, ...exts]
+    if (req.info.pathname.endsWith("/"))
+      req.info.pathname += "index.html";
+    req.info.pathname = path.join(options.root, req.info.pathname);
+    let resolved = await driver.resolve(
+      req.info.pathname + req.info.search,
+      undefined,
+      { isEntry: true },
+    );
+    if (resolved) {
+      try {
+        let result = await driver.load(resolved);
+        if (result) {
+          let ctype = result.meta?.$$?.js ? 'application/javascript' : (lookup(req.info.pathname) || "")
+          if (ctype === "text/html") ctype += ";charset=utf-8";
+          res.writeHead(200, {
+            // Vary: (gzips || brots) && "Accept-Encoding",
+            "Cache-Control": isEtag ? "no-cache" : "no-store",
+            // 'Content-Length': stats.size,
+            "Content-Type": ctype && ctype,
+            // 'Last-Modified': stats.mtime.toUTCString(),
+          });
+          res.end(result.code);
+        }
+      } catch (error) {
+        if (error !== DONT_LOAD) throw error
+      }
+    }
+    next();
+  };
+}
 
 /**
  * @param {string[]} argv
@@ -17,79 +82,16 @@ const mimeMap = {
 export async function dev(argv) {
   /** @type {minimist.ParsedArgs & { root: string }} */
   // @ts-ignore
-  const options = minimist(argv, {})
-  options.root = options.root || "/"
+  const options = minimist(argv, {});
+  options.root = options.root || "/";
   let start = new Date().getMilliseconds();
-  /**
-   * @type {import("rollup").PluginContext}
-   */
-  let driver;
-  let _driver = PluginDriver({
-    plugins: [
-      {
-        name: "load",
-        async resolveId(id) {
-          let url = new URL(id, "file://");
-          url.pathname = path.resolve(url.pathname.slice(1))
-          try {
-            url.searchParams.set("r", Math.random() + "");
-            await fs.open(url.pathname);
-            return url.pathname + url.search;
-          } catch {
 
-          }
-        },
-        async load(id) {
-          let url = new URL(id, "file://");
-          if (path.isAbsolute(url.pathname)) {
-            try {
-              return {
-                ast: {
-                  end: 0,
-                  start: 0,
-                  type: "File",
-                },
-                code: await fs.readFile(url.pathname, "utf-8"),
-              };
-            } catch { }
-          }
-        },
-      },
-    ],
-  });
-  const init = async () => (driver = await _driver);
-  const server = Server([
-    async (req, res, next) => {
-      await init();
-      let content_type;
-      if (req.info.pathname.endsWith("/")) {
-        content_type = "text/html";
-        req.info.pathname += "index.html";
-      }
-      req.info.pathname = path.join(options.root, req.info.pathname)
-      for (let mime in mimeMap) {
-        if (mimeMap[mime].test(req.info.pathname)) {
-          content_type = mime;
-          break;
-        }
-      }
-      let resolved = await driver.resolve(
-        req.info.pathname + req.info.search,
-        undefined, { isEntry: true }
-      );
-      if (resolved) {
-        let result = await driver.load(resolved);
-        if (result) {
-          if (content_type) res.setHeader("Content-Type", content_type);
-          res.writeHead(200);
-          res.end(result.code);
-          return;
-        }
-      }
-      next();
-    },
-  ]);
-  server.listen(3000);
+  const server = await Server([devMiddleWare(options), sirv(options.root)]);
+
+  const port = options.port || PORT || 3000;
+  const hostname = options.host || HOST || "0.0.0.0";
+
+  server.listen(port, hostname);
   console.info(
     `Server       ready in ${new Date().getMilliseconds() - start} ms\n\n` +
     `=> Local:    http://localhost:3000/\n` +
