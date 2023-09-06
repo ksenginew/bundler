@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@rollup/browser':
+    specifier: ^3.29.0
+    version: 3.29.0
   '@types/minimist':
     specifier: ^1.2.2
     version: 1.2.2
@@ -33,6 +36,10 @@ packages:
 
   /@polka/url@1.0.0-next.21:
     resolution: {integrity: sha512-a5Sab1C4/icpTZVzZc5Ghpz88yQtGOyNqYXcZgOssB2uuAr+wF/MvN6bgtW32q7HHrvBki+BsZ0OuNv6EV3K9g==}
+    dev: false
+
+  /@rollup/browser@3.29.0:
+    resolution: {integrity: sha512-AA9PSrqt3suzYIZc8tC4B48tZRLXbBIVbHlrQ3co4W0JJ3iaw+PZfXQrdCy/av6xggvuVBd7oVqhRk4QsMj77g==}
     dev: false
 
   /@types/minimist@1.2.2:

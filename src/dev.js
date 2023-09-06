@@ -29,19 +29,19 @@ export async function dev(argv) {
       {
         name: "load",
         async resolveId(id) {
-          console.log(id)
+          let url = new URL(id, "file://");
+          url.pathname = path.resolve(url.pathname.slice(1))
           try {
-            let url = new URL(id, "file://");
-            if (path.isAbsolute(url.pathname)) {
-              await fs.open(url.pathname);
-              return url.pathname + url.search;
-            }
-          } catch { }
+            url.searchParams.set("r", Math.random() + "");
+            await fs.open(url.pathname);
+            return url.pathname + url.search;
+          } catch {
+
+          }
         },
         async load(id) {
-          console.log(id)
           let url = new URL(id, "file://");
-          if (path.isAbsolute(url.pathname))
+          if (path.isAbsolute(url.pathname)) {
             try {
               return {
                 ast: {
@@ -52,6 +52,7 @@ export async function dev(argv) {
                 code: await fs.readFile(url.pathname, "utf-8"),
               };
             } catch { }
+          }
         },
       },
     ],
@@ -60,7 +61,6 @@ export async function dev(argv) {
   const server = Server([
     async (req, res, next) => {
       await init();
-      req.info.searchParams.set("r", Math.random() + "");
       let content_type;
       if (req.info.pathname.endsWith("/")) {
         content_type = "text/html";
@@ -74,7 +74,8 @@ export async function dev(argv) {
         }
       }
       let resolved = await driver.resolve(
-        req.info.pathname.slice(1) + req.info.search,
+        req.info.pathname + req.info.search,
+        undefined, { isEntry: true }
       );
       if (resolved) {
         let result = await driver.load(resolved);
@@ -87,7 +88,6 @@ export async function dev(argv) {
       }
       next();
     },
-    sirv()
   ]);
   server.listen(3000);
   console.info(

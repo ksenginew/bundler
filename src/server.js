@@ -28,7 +28,10 @@ export function Server(middlewares) {
               res,
               next,
             );
-          } catch (error) {}
+          } catch (error) {
+            res.writeHead(500);
+            res.end(error + '');
+          }
       }
     };
     await next();

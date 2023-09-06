@@ -38,6 +38,7 @@ export function PluginDriver(options) {
       ...(Array.isArray(options.plugins) ? options.plugins : [options.plugins]),
     ],
     treeshake: false,
+    experimentalCacheExpiry: 0,
   });
 
   setTimeout(() => reject(new Error("timeout")), 2000);
