@@ -6,10 +6,14 @@ import { Server } from "./server.js";
 /** @type {Record<string, RegExp>} */
 const mimeMap = {
   "text/html": /\.html?$/,
-  "application/javascript": /\.[mc][jt]sx?$/,
+  "application/javascript": /\.[mc]?[jt]sx?$/,
 };
 
-export async function dev() {
+/**
+ * @param {import("minimist").ParsedArgs} options
+ */
+export async function dev(options) {
+  let start = new Date().getMilliseconds();
   /**
    * @type {import("rollup").PluginContext}
    */
@@ -23,7 +27,7 @@ export async function dev() {
             let url = new URL(id, "file://");
             let filepath = path.resolve(url.pathname.slice(1));
             await fs.open(filepath);
-            return filepath;
+            return filepath + url.search;
           } catch {}
         },
         async load(id) {
@@ -75,5 +79,9 @@ export async function dev() {
     },
   ]);
   server.listen(3000);
-  console.log("listening");
+  console.info(
+    `Server       ready in ${new Date().getMilliseconds() - start} ms\n\n` +
+      `=> Local:    http://localhost:3000/\n` +
+      "",
+  );
 }

@@ -1,3 +1,3 @@
-import { dev } from "./dev.js";
+import { cli } from "./cli.js";
 
-dev();
+cli();

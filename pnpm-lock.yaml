@@ -5,12 +5,18 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  "@types/minimist":
+    specifier: ^1.2.2
+    version: 1.2.2
   acorn:
     specifier: ^8.10.0
     version: 8.10.0
   acorn-import-assertions:
     specifier: ^1.9.0
     version: 1.9.0(acorn@8.10.0)
+  minimist:
+    specifier: ^1.2.8
+    version: 1.2.8
 
 devDependencies:
   "@types/node":
@@ -21,6 +27,13 @@ devDependencies:
     version: 3.28.1
 
 packages:
+  /@types/minimist@1.2.2:
+    resolution:
+      {
+        integrity: sha512-jhuKLIRrhvCPLqwPcx6INqmKeiA5EWrsCOPhrlFSrbrmU4ZMPjj5Ul/oLCMDO98XRUIwVm78xICz4EPCektzeQ==,
+      }
+    dev: false
+
   /@types/node@20.5.8:
     resolution:
       {
@@ -58,6 +71,13 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /minimist@1.2.8:
+    resolution:
+      {
+        integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==,
+      }
+    dev: false
 
   /rollup@3.28.1:
     resolution:
