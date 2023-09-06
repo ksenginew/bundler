@@ -8,38 +8,38 @@ export function PluginDriver(options) {
   /**
    * @type {(arg0: import("rollup").PluginContext) => void}
    */
-  let resolve
+  let resolve;
   /**
    * @type {(reason?: any) => void}
    */
-  let reject
+  let reject;
   const promise = new Promise((_resolve, _reject) => {
-    resolve = _resolve
-    reject = _reject
-  })
+    resolve = _resolve;
+    reject = _reject;
+  });
 
-  let input = Math.random() + ''
+  let input = Math.random() + "";
   rollup({
     input,
     ...options,
     plugins: [
       {
-        name: 'dev',
+        name: "dev",
         buildStart() {
-          resolve(this)
+          resolve(this);
         },
         resolveId(id) {
-          if (id == input) return id
+          if (id == input) return id;
         },
         load(id) {
-          if (id == input) return ''
+          if (id == input) return "";
         },
       },
       ...(Array.isArray(options.plugins) ? options.plugins : [options.plugins]),
     ],
     treeshake: false,
-  })
+  });
 
-  setTimeout(() => reject(new Error('timeout')), 2000)
-  return promise
+  setTimeout(() => reject(new Error("timeout")), 2000);
+  return promise;
 }
