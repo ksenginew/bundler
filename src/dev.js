@@ -2,6 +2,8 @@ import fs from "fs/promises";
 import { PluginDriver } from "./PluginDriver.js";
 import path from "path";
 import { Server } from "./server.js";
+import minimist from "minimist";
+import sirv from "sirv";
 
 /** @type {Record<string, RegExp>} */
 const mimeMap = {
@@ -10,9 +12,13 @@ const mimeMap = {
 };
 
 /**
- * @param {import("minimist").ParsedArgs} options
+ * @param {string[]} argv
  */
-export async function dev(options) {
+export async function dev(argv) {
+  /** @type {minimist.ParsedArgs & { root: string }} */
+  // @ts-ignore
+  const options = minimist(argv, {})
+  options.root = options.root || "/"
   let start = new Date().getMilliseconds();
   /**
    * @type {import("rollup").PluginContext}
@@ -23,14 +29,17 @@ export async function dev(options) {
       {
         name: "load",
         async resolveId(id) {
+          console.log(id)
           try {
             let url = new URL(id, "file://");
-            let filepath = path.resolve(url.pathname.slice(1));
-            await fs.open(filepath);
-            return filepath + url.search;
-          } catch {}
+            if (path.isAbsolute(url.pathname)) {
+              await fs.open(url.pathname);
+              return url.pathname + url.search;
+            }
+          } catch { }
         },
         async load(id) {
+          console.log(id)
           let url = new URL(id, "file://");
           if (path.isAbsolute(url.pathname))
             try {
@@ -42,7 +51,7 @@ export async function dev(options) {
                 },
                 code: await fs.readFile(url.pathname, "utf-8"),
               };
-            } catch {}
+            } catch { }
         },
       },
     ],
@@ -57,6 +66,7 @@ export async function dev(options) {
         content_type = "text/html";
         req.info.pathname += "index.html";
       }
+      req.info.pathname = path.join(options.root, req.info.pathname)
       for (let mime in mimeMap) {
         if (mimeMap[mime].test(req.info.pathname)) {
           content_type = mime;
@@ -77,11 +87,12 @@ export async function dev(options) {
       }
       next();
     },
+    sirv()
   ]);
   server.listen(3000);
   console.info(
     `Server       ready in ${new Date().getMilliseconds() - start} ms\n\n` +
-      `=> Local:    http://localhost:3000/\n` +
-      "",
+    `=> Local:    http://localhost:3000/\n` +
+    "",
   );
 }

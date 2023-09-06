@@ -18,6 +18,7 @@
     "@types/minimist": "^1.2.2",
     "acorn": "^8.10.0",
     "acorn-import-assertions": "^1.9.0",
-    "minimist": "^1.2.8"
+    "minimist": "^1.2.8",
+    "sirv": "^2.0.3"
   }
 }
