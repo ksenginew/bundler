@@ -27,7 +27,7 @@ function devMiddleWare(options) {
       include: [/\.[mc]?[jt]sx?$/],
       exclude: ['node_modules/**'],
       transforms: ['typescript']
-    }), cssPlugin(), assetsPlugin(options),loaderPlugin()],
+    }), cssPlugin(), assetsPlugin(options), loaderPlugin()],
   });
   const init = async () => (driver = await _driver);
 
@@ -93,7 +93,7 @@ export async function dev(argv) {
   options.root = options.root || "/";
   let start = new Date().getMilliseconds();
 
-  const server = await Server([sirv(path.join(options.root, 'public'), { dev: true }), devMiddleWare(options), sirv(options.root, { dev: true })]);
+  const server = await Server([devMiddleWare(options), sirv(path.join(options.root, 'public'), { dev: true }), sirv(options.root, { dev: true })]);
 
   const port = options.port || PORT || 3000;
   const hostname = options.host || HOST || "0.0.0.0";
