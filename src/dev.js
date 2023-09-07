@@ -7,6 +7,8 @@ import { lookup } from "mrmime";
 import { DONT_LOAD, loaderPlugin } from "./plugins/loader.js";
 import sirv from "sirv";
 import { cssPlugin } from "./plugins/css.js";
+import sucrase from "@rollup/plugin-sucrase";
+import { assetsPlugin } from "./plugins/assets.js";
 
 const { HOST, PORT } = process.env;
 
@@ -21,7 +23,11 @@ function devMiddleWare(options) {
    */
   let driver;
   let _driver = PluginDriver({
-    plugins: [cssPlugin(), loaderPlugin()],
+    plugins: [sucrase({
+      include: [/\.[mc]?[jt]sx?$/],
+      exclude: ['node_modules/**'],
+      transforms: ['typescript']
+    }), cssPlugin(), assetsPlugin(),loaderPlugin()],
   });
   const init = async () => (driver = await _driver);
 
@@ -45,11 +51,12 @@ function devMiddleWare(options) {
     if (gzips && val.includes("gzip")) extns.unshift(...gzips);
     if (brots && /(br|brotli)/i.test(val + "")) extns.unshift(...brots);
     extns.push(...extensions); // [...br, ...gz, orig, ...exts]
-    if (req.info.pathname.endsWith("/"))
-      req.info.pathname += "index.html";
-    req.info.pathname = path.join(options.root, req.info.pathname);
+    let pathname = req.info.pathname
+    if (pathname.endsWith("/"))
+      pathname += "index.html";
+    pathname = path.join(options.root, pathname);
     let resolved = await driver.resolve(
-      req.info.pathname + req.info.search,
+      pathname + req.info.search,
       undefined,
       { isEntry: true },
     );
@@ -57,7 +64,7 @@ function devMiddleWare(options) {
       try {
         let result = await driver.load(resolved);
         if (result) {
-          let ctype = result.meta?.$$?.js ? 'application/javascript' : (lookup(req.info.pathname) || "")
+          let ctype = (result.meta?.$$?.js || /\.[mc]?[jt]sx?$/.test(pathname)) ? 'application/javascript' : (lookup(pathname) || "")
           if (ctype === "text/html") ctype += ";charset=utf-8";
           res.writeHead(200, {
             // Vary: (gzips || brots) && "Accept-Encoding",
@@ -86,7 +93,7 @@ export async function dev(argv) {
   options.root = options.root || "/";
   let start = new Date().getMilliseconds();
 
-  const server = await Server([devMiddleWare(options), sirv(options.root)]);
+  const server = await Server([sirv(path.join(options.root, 'public'), { dev: true }), devMiddleWare(options), sirv(options.root, { dev: true })]);
 
   const port = options.port || PORT || 3000;
   const hostname = options.host || HOST || "0.0.0.0";

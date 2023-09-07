@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@rollup/browser": "^3.29.0",
+    "@rollup/plugin-sucrase": "^5.0.1",
     "@types/minimist": "^1.2.2",
     "acorn": "^8.10.0",
     "acorn-import-assertions": "^1.9.0",

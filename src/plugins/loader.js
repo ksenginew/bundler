@@ -1,4 +1,4 @@
-import path from "path";
+import path, { basename } from "path";
 import fs from "fs/promises";
 
 export const DONT_LOAD = new Error()
@@ -11,7 +11,7 @@ export function loaderPlugin() {
             let url = new URL(id, "file://");
             url.pathname = path.resolve(url.pathname.slice(1));
             try {
-                url.searchParams.set("r", Math.random() + "");
+                url.searchParams.set("r", Math.random() + basename(url.pathname));
                 await fs.open(url.pathname);
                 return url.pathname + url.search;
             } catch { }
