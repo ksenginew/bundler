@@ -27,7 +27,7 @@ function devMiddleWare(options) {
       include: [/\.[mc]?[jt]sx?$/],
       exclude: ['node_modules/**'],
       transforms: ['typescript']
-    }), cssPlugin(), assetsPlugin(),loaderPlugin()],
+    }), cssPlugin(), assetsPlugin(options),loaderPlugin()],
   });
   const init = async () => (driver = await _driver);
 
